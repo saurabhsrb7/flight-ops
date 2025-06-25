@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
@@ -15,9 +15,28 @@ from fastapi.responses import Response
 from database import get_db, Base
 from schemas import UserCreate, UserResponse, Token, TokenData
 
+# Configure structlog
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.processors.JSONRenderer()
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 # Security configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
@@ -49,12 +68,12 @@ def create_app(engine=None, sessionmaker=None):
     )
     
     # Request logging middleware
-    # @app.middleware("http")
-    # async def log_requests(request, call_next):
-    #     logger.info(f"Request: {request.method} {request.url}")
-    #     response = await call_next(request)
-    #     logger.info(f"Response: {response.status_code}")
-    #     return response
+    @app.middleware("http")
+    async def log_requests(request, call_next):
+        logger.info(f"Request: {request.method} {request.url}")
+        response = await call_next(request)
+        logger.info(f"Response: {response.status_code}")
+        return response
     
     # Authentication functions
     def verify_password(plain_password, hashed_password):
@@ -176,13 +195,13 @@ async def log_requests(request, call_next):
     
     REQUEST_LATENCY.observe(duration)
     
-    # logger.info(
-    #     "Request processed",
-    #     method=request.method,
-    #     path=request.url.path,
-    #     status_code=response.status_code,
-    #     duration=duration
-    # )
+    logger.info(
+        "Request processed",
+        method=request.method,
+        path=request.url.path,
+        status_code=response.status_code,
+        duration=duration
+    )
     
     return response
 

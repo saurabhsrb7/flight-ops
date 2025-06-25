@@ -1,0 +1,16 @@
+# macOS system files
+.DS_Store
+
+# Python virtual environments
+venv/
+
+# Environment variables
+user-service/.env
+
+# Bytecode
+__pycache__/
+*.pyc
+
+# Editor settings (optional)
+.vscode/
+.idea/

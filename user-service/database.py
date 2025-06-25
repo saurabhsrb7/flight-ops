@@ -5,8 +5,8 @@ import os
 
 # Database configuration
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://postgres:password@localhost:5432/user_service"
+    "DATABASE_URL",
+    "postgresql://srbrahangdale@localhost:5432/user_service"
 )
 
 engine = create_engine(DATABASE_URL)
@@ -28,4 +28,4 @@ def get_db():
     try:
         yield db
     finally:
-        db.close() 
+        db.close()
