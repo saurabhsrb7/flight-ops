@@ -172,6 +172,21 @@ def create_app(engine=None, sessionmaker=None):
     def health_check():
         return {"status": "healthy", "service": "user-service"}
     
+    @app.get("/users/{user_id}", response_model=UserResponse)
+    async def get_user(user_id: int, db: Session = Depends(get_db)):
+        """Get user by ID"""
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        return UserResponse.from_orm(user)
+    
+    @app.get("/metrics")
+    async def metrics():
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    
     return app
 
 # Create the default app instance
@@ -204,22 +219,6 @@ async def log_requests(request, call_next):
     )
     
     return response
-
-@app.get("/metrics")
-async def metrics():
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-@app.get("/users/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int, db: Session = Depends(get_db)):
-    """Get user by ID"""
-    from models import User  # Import here for the default app instance
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    return UserResponse.from_orm(user)
 
 if __name__ == "__main__":
     import uvicorn
