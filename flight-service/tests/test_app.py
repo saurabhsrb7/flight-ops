@@ -29,6 +29,7 @@ def make_flight_data(
         "price": price
     }
 
+# @pytest.mark.xfail(reason="This test is failing because the flight data is not being created correctly")
 def test_create_flight(client):
     flight_data = make_flight_data()
     response = client.post("/flights", json=flight_data)
