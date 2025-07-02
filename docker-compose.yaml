@@ -1,0 +1,172 @@
+version: '3.8'
+
+services:
+  # PostgreSQL databases
+  postgres-user:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: user_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_user_data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+
+  postgres-flight:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: flight_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_flight_data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+
+  postgres-booking:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: booking_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_booking_data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+
+  postgres-payment:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: payment_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_payment_data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+
+  postgres-notification:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: notification_service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_notification_data:/var/lib/postgresql/data
+    networks:
+      - flight-network
+
+  # Redis for caching and seat locking
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - flight-network
+
+  # Microservices
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-user:5432/user_service
+      - SECRET_KEY=your-secret-key-here
+    depends_on:
+      - postgres-user
+    networks:
+      - flight-network
+    restart: unless-stopped
+
+  flight-service:
+    build:
+      context: ./flight-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-flight:5432/flight_service
+    depends_on:
+      - postgres-flight
+    networks:
+      - flight-network
+    restart: unless-stopped
+
+  booking-service:
+    build:
+      context: ./booking-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-booking:5432/booking_service
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres-booking
+      - redis
+      - user-service
+      - flight-service
+    networks:
+      - flight-network
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-payment:5432/payment_service
+    depends_on:
+      - postgres-payment
+    networks:
+      - flight-network
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-notification:5432/notification_service
+      - SMTP_SERVER=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=your-email@gmail.com
+      - SMTP_PASSWORD=your-app-password
+    depends_on:
+      - postgres-notification
+      - user-service
+      - flight-service
+    networks:
+      - flight-network
+    restart: unless-stopped
+
+volumes:
+  postgres_user_data:
+  postgres_flight_data:
+  postgres_booking_data:
+  postgres_payment_data:
+  postgres_notification_data:
+  redis_data:
+
+networks:
+  flight-network:
+    driver: bridge 

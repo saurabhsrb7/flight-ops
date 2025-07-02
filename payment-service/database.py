@@ -6,7 +6,7 @@ import os
 # Database configuration
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://srbrahangdale@localhost:5432/payment_service"
+    "postgresql://postgres:password@postgres:5432/payment_service"
 
 )
 
