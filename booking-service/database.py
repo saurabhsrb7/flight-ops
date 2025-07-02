@@ -6,7 +6,7 @@ import os
 # Database configuration
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "postgresql://postgres:password@localhost:5437/booking_service"
+    "postgresql://postgres:password@localhost:5432/booking_service"
 )
 
 engine = create_engine(DATABASE_URL)
