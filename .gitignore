@@ -17,8 +17,3 @@ __pycache__/
 
 # Database files
 *.db
-*.sqlite
-*.sqlite3
-*.db3
-*.db-shm
-*.db-wal
